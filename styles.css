@@ -1,0 +1,190 @@
+body {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url("images/bg.jpg") center/cover fixed no-repeat;
+    background-size: cover;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+* { font-family: "Google Sans" }
+header {
+    display: none !important; /* keep header removed site-wide */
+}
+
+/* hide footer completely */
+footer {
+    display: none !important;
+}
+
+/* small floating navigation (top-right) to replace hidden header links */
+.floating-nav {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 999;
+    display: flex;
+    gap: 8px;
+    background: rgba(0,0,0,0.42);
+    padding: 8px 10px;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    backdrop-filter: blur(4px);
+}
+.floating-nav a {
+    color: #fff;
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: transparent;
+    transition: background 160ms ease, transform 120ms ease;
+}
+.floating-nav a:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-2px);
+}
+
+/* ====== slide-up form + background image styles (add to end of file) ====== */
+
+.with-bg {
+    position: relative;
+    background: transparent;
+    min-height: 100vh; /* full viewport */
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* floating site title that occupies former header area */
+.with-bg .hero-title {
+    position: absolute;
+    top: 18px;            /* adjust to sit at top */
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 6;
+    color: #ffffff;
+    font-size: 2.6rem;
+    font-weight: 900;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    text-shadow: 0 8px 22px rgba(0,0,0,0.55);
+    transform: translateY(32px);
+    opacity: 0;
+    animation: floatIn 700ms cubic-bezier(.2,.9,.3,1) forwards;
+    animation-delay: 0.12s;
+}
+
+/* slightly lift the form-card so title sits visually above it */
+.with-bg .form-card {
+    margin-top: 64px;
+    z-index: 5;
+    background: rgba(255,255,255,0.88); /* a touch more transparent */
+    box-shadow: 0 18px 40px rgba(7,7,7,0.20);
+    border: 1px solid rgba(0,0,0,0.06);
+    padding: 26px;
+}
+
+/* float in animation */
+@keyframes floatIn {
+    from { transform: translateY(32px); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+
+/* Sliding fields */
+@keyframes slideUp {
+    from { transform: translateY(28px); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+.form-card .form-field {
+    transform: translateY(28px);
+    opacity: 0;
+    animation: slideUp 420ms cubic-bezier(.2,.9,.3,1) forwards;
+    margin-bottom: 12px;
+}
+
+/* stagger animation */
+.form-card .form-field:nth-of-type(1) { animation-delay: 0.07s; }
+.form-card .form-field:nth-of-type(2) { animation-delay: 0.13s; }
+.form-card .form-field:nth-of-type(3) { animation-delay: 0.19s; }
+.form-card .form-field:nth-of-type(4) { animation-delay: 0.25s; }
+.form-card .form-field:nth-of-type(5) { animation-delay: 0.31s; }
+.form-card .form-field:nth-of-type(6) { animation-delay: 0.37s; }
+
+/* labels and headings */
+.form-card h2 {
+    color: rgba(12,12,12,0.95);
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+}
+.form-card label {
+    color: rgba(20,20,20,0.7);
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+/* inputs blend: soft inner-shadow, subtle border, lighter placeholder */
+.form-card input,
+.form-card select,
+.form-card textarea {
+    background: rgba(255,255,255,0.96);
+    border: 1px solid rgba(12,12,12,0.06);
+    box-shadow: inset 0 2px 8px rgba(8,8,8,0.04);
+    padding: 12px 14px;
+    color: #111;
+}
+.form-card input::placeholder,
+.form-card textarea::placeholder {
+    color: #8a8a8a;
+}
+
+/* primary button refinement */
+.form-card button {
+    background: linear-gradient(180deg,#b11f1f 0%, #9f1a1a 100%);
+    box-shadow: 0 8px 18px rgba(177,31,31,0.18);
+    border: none;
+    padding: 12px 18px;
+    font-weight: 700;
+}
+.form-card button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(177,31,31,0.22);
+}
+
+/* muted helper text */
+.form-card .muted {
+    color: rgba(30,30,30,0.6);
+}
+
+/* keep floating title contrast strong on top */
+.with-bg .hero-title {
+    color: #ffffff;
+    text-shadow: 0 10px 30px rgba(0,0,0,0.6);
+}
+
+/* mobile tweaks */
+@media (max-width: 600px) {
+    .form-card { padding: 20px; border-radius: 10px; }
+    .with-bg { padding: 20px 12px; }
+    .with-bg .hero-title {
+        font-size: 1.6rem;
+        top: 12px;
+    }
+    .with-bg .form-card { margin-top: 44px; width: 94%; padding: 18px; }
+    .floating-nav { right: 12px; top: 10px; padding: 6px; gap:6px; }
+    .floating-nav a { font-size:0.85rem; padding:6px 8px; }
+}
+
+/* ensure floating nav and modals remain above showcase cards */
+.floating-nav { z-index: 1200; }
+.card { z-index: 10; }
+.modal-backdrop { z-index: 2000; }
+.stack { z-index: 5; pointer-events: auto; }
+/* reduce chance cards overlap text by giving clearer spacing */
+.stack .card { margin-bottom: 12px; }
+/* make inputs / form-card slightly more translucent so background doesn't block */
+.with-bg .form-card { z-index: 1100; }

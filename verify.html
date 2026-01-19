@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Verify Account</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Verify Account</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="login.html">Login</a>
+    </nav>
+  </header>
+
+  <main class="with-bg">
+    <div class="floating-nav">
+  <a href="index.html">Home</a>
+  <a href="listings.html">Listings</a>
+  <a href="messages.html">Messages</a>
+  <a href="login.html">Login</a>
+  <a href="register.html">Register</a>
+</div>
+    <div class="form-card">
+      <h2 style="margin-top:0">Verify Your Account</h2>
+      <p class="muted">Enter the 6-digit code sent to your email.</p>
+      <form id="verifyAccountForm">
+        <div class="form-field"><label for="verifyCode">Code</label><input id="verifyCode" type="text" required></div>
+        <div class="form-field"><button type="submit">Verify</button></div>
+      </form>
+      <div id="verifyMsg" class="muted" style="margin-top:8px;"></div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Real Estate Finder. All Rights Reserved.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

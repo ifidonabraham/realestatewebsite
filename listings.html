@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Property Listings</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Property Listings</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="listings.html">Listings</a>
+      <a href="login.html">Login</a>
+      <a href="register.html">Register</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="floating-nav">
+  <a href="index.html">Home</a>
+  <a href="listings.html">Listings</a>
+  <a href="messages.html">Messages</a>
+  <a href="login.html">Login</a>
+  <a href="register.html">Register</a>
+</div>
+    <div style="max-width:1000px;margin:20px auto;padding:16px;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <input id="searchBox" type="text" placeholder="Search by title or location" style="flex:1;padding:10px;border-radius:8px;border:1px solid #ccc;">
+        <select id="priceFilter" style="padding:10px;border-radius:8px;border:1px solid #ccc;">
+          <option value="">All prices</option>
+          <option value="low">Below $500</option>
+          <option value="medium">$500 - $1000</option>
+          <option value="high">Above $1000</option>
+        </select>
+      </div>
+
+      <div id="propertyList" style="margin-top:18px;"></div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Real Estate Finder. All Rights Reserved.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

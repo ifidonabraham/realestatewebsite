@@ -1,0 +1,20 @@
+{
+  "users": [
+    {
+      "id": "9144",
+      "email": "test@example.com",
+      "password": "12345",
+      "type": "client"
+    }
+  ],
+  "properties": [],
+  "messages": [
+    {
+      "id": 1,
+      "sender": "agent@example.com",
+      "receiver": "client@example.com",
+      "text": "Hello, how can I help you?",
+      "timestamp": "2025-08-29T12:34:56Z"
+    }
+  ]
+}

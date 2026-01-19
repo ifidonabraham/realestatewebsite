@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Agent Dashboard</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="listings.html">Listings</a>
+      <a href="messages.html">Messages</a>
+      <a href="login.html" id="logoutBtn">Logout</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="floating-nav">
+  <a href="index.html">Home</a>
+  <a href="listings.html">Listings</a>
+  <a href="messages.html">Messages</a>
+  <a href="login.html">Login</a>
+  <a href="register.html">Register</a>
+</div>
+    <div style="max-width:1000px;margin:18px auto;padding:16px;">
+      <h2>Upload Property</h2>
+      <form id="propertyUploadForm" enctype="multipart/form-data">
+        <div class="form-field"><label>Title</label><input id="propertyTitle" type="text" required></div>
+        <div class="form-field"><label>Location</label><input id="propertyLocation" type="text" required></div>
+        <div class="form-field"><label>Price</label><input id="propertyPrice" type="number" required></div>
+        <div class="form-field"><label>Description</label><textarea id="propertyDescription" rows="4" required></textarea></div>
+        <div class="form-field"><label>Image</label><input id="propertyImage" type="file" accept="image/*" required></div>
+        <div class="form-field"><button type="submit">Upload Property</button></div>
+      </form>
+
+      <h2 style="margin-top:22px;">Your Properties</h2>
+      <div id="agentProperties"></div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Real Estate Finder. All Rights Reserved.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

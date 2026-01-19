@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Messages - Real Estate Finder</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root{--muted:#7a7a7a;--accent:#b11f1f}
+    body,html{height:100%;margin:0}
+    .messages-app{display:flex;height:100vh;background:linear-gradient(180deg,rgba(255,255,255,0.95),rgba(250,250,250,0.95));}
+    .convos{width:300px;border-right:1px solid #e8e8e8;overflow:auto;padding:12px;box-sizing:border-box}
+    .convo-item{display:flex;gap:10px;align-items:center;padding:10px;border-radius:8px;cursor:pointer;position:relative}
+    .convo-item:hover{background:#f6f6f6}
+    .convo-item.active{background:rgba(177,31,31,0.08)}
+    .avatar{width:44px;height:44px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;font-weight:700;color:#555}
+    .convo-meta{flex:1}
+    .convo-name{font-weight:700}
+    .convo-last{font-size:0.85rem;color:var(--muted);margin-top:4px}
+    .unread-badge{position:absolute;right:10px;top:12px;background:#b11f1f;color:#fff;padding:4px 8px;border-radius:999px;font-size:0.75rem;font-weight:700}
+    .date-sep{text-align:center;color:var(--muted);font-size:0.85rem;margin:12px 0}
+    .chat-pane{flex:1;display:flex;flex-direction:column;min-width:320px}
+    .chat-header{padding:12px 16px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff}
+    .chat-body{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:8px;background:linear-gradient(180deg,#fff,#f9f9f9)}
+    .msg{max-width:72%;padding:10px 12px;border-radius:12px;line-height:1.2}
+    .msg.me{background:var(--accent);color:#fff;margin-left:auto;border-bottom-right-radius:4px}
+    .msg.them{background:#f1f1f1;color:#222;border-bottom-left-radius:4px}
+    .msg .time{display:block;font-size:0.75rem;color:#eee;margin-top:6px;opacity:0.9}
+    .msg.them .time{color:var(--muted)}
+    .attachment{margin-top:8px;border-radius:8px;overflow:hidden}
+    .attachment img, .attachment video { max-width:260px; border-radius:6px; display:block }
+    .chat-footer{padding:12px;border-top:1px solid #eee;background:#fff;display:flex;gap:8px;align-items:center}
+    .chat-input{flex:1;display:flex;gap:8px;align-items:center}
+    .chat-input input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid #ddd}
+    .btn-send{background:var(--accent);color:#fff;padding:10px 14px;border-radius:10px;border:none;font-weight:700;cursor:pointer}
+    .controls{display:flex;gap:8px;align-items:center}
+    .controls button{background:transparent;border:1px solid #ddd;padding:8px;border-radius:8px;cursor:pointer}
+    .map-panel{width:420px;border-left:1px solid #e8e8e8;background:#fff;padding:8px;box-sizing:border-box;display:flex;flex-direction:column}
+    #map{flex:1;border-radius:6px;overflow:hidden}
+    .typing{font-size:0.9rem;color:var(--muted);padding-left:6px}
+    @media (max-width:1100px){ .map-panel{display:none} }
+  </style>
+</head>
+<body>
+  <div class="floating-nav">
+    <a href="index.html">Home</a>
+    <a href="listings.html">Listings</a>
+    <a href="showcase.html">Showcase</a>
+  </div>
+
+  <div class="messages-app" id="app">
+    <aside class="convos" id="convoList" aria-label="Conversations"></aside>
+
+    <section class="chat-pane">
+      <div class="chat-header">
+        <div>
+          <div id="chatWithName" style="font-weight:800">Select a conversation</div>
+          <div id="chatWithMeta" style="font-size:.9rem;color:var(--muted)"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="typing" id="typingIndicator" style="display:none">typing…</div>
+          <div class="controls">
+            <button id="logoutBtn">Logout</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-body" id="messageList" aria-live="polite"></div>
+
+      <div class="chat-footer">
+        <form id="messageForm" class="chat-input" autocomplete="off">
+          <input id="messageInput" placeholder="Write a message…" />
+          <input type="file" id="attachFile" style="display:none" />
+          <button type="button" id="attachBtn" title="Attach">📎</button>
+          <button class="btn-send" type="submit">Send</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- inline map panel (always present on wide screens) -->
+    <aside class="map-panel" id="mapPanel" aria-hidden="false">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <strong>Map / Properties</strong>
+        <select id="mapFilter" style="margin-left:auto;padding:6px;border-radius:6px">
+          <option value="">All</option>
+          <option value="agent">Agent-owned</option>
+        </select>
+      </div>
+      <div id="map" style="height:100%"></div>
+    </aside>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    (function(){
+      const API = 'http://localhost:3000';
+      const SOCKET_URL = 'http://localhost:5000';
+      const UPLOAD_URL = 'http://localhost:5000/upload';
+      let users = [], messages = [], currentUser = JSON.parse(localStorage.getItem('currentUser')||'null');
+      if (!currentUser) { localStorage.setItem('postLoginRedirect','/messages.html'); window.location.href='login.html'; }
+
+      // request notification permission early
+      if (window.Notification && Notification.permission === 'default') {
+        Notification.requestPermission().catch(()=>{});
+      }
+
+      const socket = io(SOCKET_URL, {transports:['websocket','polling']});
+      socket.on('connect', ()=> socket.emit('identify', currentUser.email));
+      socket.on('chat message', (m)=> onIncomingMessage(m));
+      socket.on('typing', (d)=> showTyping(d));
+
+      const convoListEl = document.getElementById('convoList');
+      const messageListEl = document.getElementById('messageList');
+      const messageForm = document.getElementById('messageForm');
+      const messageInput = document.getElementById('messageInput');
+      const attachBtn = document.getElementById('attachBtn');
+      const attachFile = document.getElementById('attachFile');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const typingIndicator = document.getElementById('typingIndicator');
+      const chatWithName = document.getElementById('chatWithName');
+      const chatWithMeta = document.getElementById('chatWithMeta');
+      const mapFilter = document.getElementById('mapFilter');
+
+      let activeContact = null;
+      let convoIndex = {}; // contactEmail -> messages[]
+      let map, propertyMarkers = [];
+
+      async function init(){
+        users = await fetch(API + '/users').then(r=>r.json()).catch(()=>[]);
+        messages = await fetch(API + '/messages?_sort=timestamp&_order=asc').then(r=>r.json()).catch(()=>[]);
+        buildConversations();
+        initMap();
+        bindEvents();
+      }
+
+      function buildConversations(){
+        convoIndex = {};
+        messages.forEach(m=>{
+          const other = m.sender === currentUser.email ? m.receiver : m.sender;
+          if (!convoIndex[other]) convoIndex[other]=[];
+          convoIndex[other].push(m);
+        });
+        // ensure everyone shows (users)
+        users.forEach(u => { if (u.email !== currentUser.email && !convoIndex[u.email]) convoIndex[u.email]=[]; });
+        renderConvoList();
+      }
+
+      // compute unread counts (received by currentUser and read !== true)
+      function computeUnreadCounts(){
+        const counts = {};
+        messages.forEach(m=>{
+          if (m.receiver === currentUser.email && !m.read) {
+            counts[m.sender] = (counts[m.sender]||0) + 1;
+          }
+        });
+        return counts;
+      }
+
+      function renderConvoList(){
+        convoListEl.innerHTML = '';
+        const unread = computeUnreadCounts();
+        const items = Object.keys(convoIndex).sort((a,b)=>{
+          const la = convoIndex[a].length? convoIndex[a][convoIndex[a].length-1].timestamp:0;
+          const lb = convoIndex[b].length? convoIndex[b][convoIndex[b].length-1].timestamp:0;
+          return lb - la;
+        });
+        items.forEach(email=>{
+          const msgs = convoIndex[email];
+          const last = msgs.length? msgs[msgs.length-1] : null;
+          const user = users.find(u=>u.email===email) || {email};
+          const el = document.createElement('div');
+          el.className = 'convo-item' + (activeContact===email? ' active':'');
+          el.innerHTML = `<div class="avatar">${(user.name||user.email||'U').charAt(0).toUpperCase()}</div>
+                          <div class="convo-meta"><div class="convo-name">${user.name||user.email}</div>
+                          <div class="convo-last">${last? (last.text.slice(0,60)) : 'No messages yet'}</div></div>`;
+          if (unread[email]) {
+            const badge = document.createElement('div');
+            badge.className = 'unread-badge';
+            badge.innerText = unread[email];
+            el.appendChild(badge);
+          }
+          el.addEventListener('click', ()=> openConversation(email));
+          convoListEl.appendChild(el);
+        });
+      }
+
+      function openConversation(email){
+        activeContact = email;
+        // mark messages as read (patch to server for messages where receiver===currentUser)
+        const toMark = (convoIndex[email]||[]).filter(m => m.receiver === currentUser.email && !m.read);
+        toMark.forEach(async (m) => {
+          // patch json-server message read flag
+          try {
+            await fetch(`${API}/messages/${m.id}`, {
+              method: 'PATCH',
+              headers: {'Content-Type':'application/json'},
+              body: JSON.stringify({ read: true })
+            });
+            m.read = true;
+          } catch(e){ /* ignore */ }
+        });
+
+        document.querySelectorAll('.convo-item').forEach(el=>el.classList.remove('active'));
+        const selected = Array.from(convoListEl.children).find(c=> c.querySelector('.convo-name')?.textContent.includes(email) || true);
+        if (selected) selected.classList.add('active');
+        chatWithName.textContent = (users.find(u=>u.email===email)?.name) || email;
+        chatWithMeta.textContent = `Chat with ${email}`;
+        renderMessagesFor(email);
+        renderConvoList(); // update unread badges
+      }
+
+      function renderMessagesFor(email){
+        messageListEl.innerHTML = '';
+        const list = convoIndex[email] || [];
+        // group by date
+        let lastDate = null;
+        list.forEach(m=>{
+          const d = new Date(m.timestamp);
+          const dateKey = d.toDateString();
+          if (dateKey !== lastDate) {
+            const sep = document.createElement('div');
+            sep.className = 'date-sep';
+            sep.textContent = dateKey;
+            messageListEl.appendChild(sep);
+            lastDate = dateKey;
+          }
+          const el = document.createElement('div');
+          el.className = 'msg ' + (m.sender===currentUser.email? 'me':'them');
+          const time = d.toLocaleTimeString();
+          // render attachment if present
+          let attachHtml = '';
+          if (m.attachment && typeof m.attachment === 'string') {
+            const url = m.attachment;
+            if (/\.(jpe?g|png|gif|webp)$/i.test(url)) {
+              attachHtml = `<div class="attachment"><img src="${escapeHTML(url)}" alt="attachment"></div>`;
+            } else if (/\.(mp4|webm|ogg)$/i.test(url)) {
+              attachHtml = `<div class="attachment"><video muted controls src="${escapeHTML(url)}" style="max-width:320px"></video></div>`;
+            } else {
+              attachHtml = `<div class="attachment"><a href="${escapeHTML(url)}" target="_blank" rel="noopener">Download attachment</a></div>`;
+            }
+          }
+          el.innerHTML = `<div>${escapeHTML(m.text||'')}</div>${attachHtml}<div class="time">${time}</div>`;
+          messageListEl.appendChild(el);
+        });
+        messageListEl.scrollTop = messageListEl.scrollHeight;
+      }
+
+      messageForm.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        if (!activeContact) return alert('Select a conversation first');
+        const text = messageInput.value.trim();
+        if (!text && !attachFile.files.length) return;
+        // if there's an attached file upload first
+        let attachmentUrl = null;
+        if (attachFile.files.length) {
+          const file = attachFile.files[0];
+          const fd = new FormData();
+          fd.append('file', file);
+          try {
+            const res = await fetch(UPLOAD_URL, { method: 'POST', body: fd });
+            const json = await res.json();
+            attachmentUrl = json.url;
+          } catch (err) {
+            console.error('Upload failed', err);
+            alert('Upload failed');
+          }
+        }
+        const msg = { sender: currentUser.email, receiver: activeContact, text, timestamp: new Date().toISOString(), attachment: attachmentUrl || null };
+        // show locally immediately
+        convoIndex[activeContact] = convoIndex[activeContact] || [];
+        convoIndex[activeContact].push(msg);
+        renderMessagesFor(activeContact);
+        messageInput.value='';
+        attachFile.value = '';
+        // persist to json-server
+        let saved = null;
+        try {
+          const r = await fetch(API + '/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(msg) });
+          saved = await r.json();
+          // ensure id is set in local convo
+          if (saved && saved.id) {
+            convoIndex[activeContact].pop();
+            convoIndex[activeContact].push(saved);
+            messages.push(saved);
+          }
+        } catch(e){ console.warn('Persist failed', e); }
+        // emit realtime
+        socket.emit('chat message', saved || msg);
+      });
+
+      messageInput.addEventListener('input', ()=>{
+        socket.emit('typing', {from: currentUser.email, to: activeContact});
+      });
+
+      function onIncomingMessage(m){
+        // merge incoming message
+        messages.push(m);
+        const other = m.sender === currentUser.email ? m.receiver : m.sender;
+        convoIndex[other] = convoIndex[other]||[];
+        convoIndex[other].push(m);
+        renderConvoList();
+        // desktop notification when message is to currentUser
+        if (m.receiver === currentUser.email) {
+          // show notification (if permission)
+          if (window.Notification && Notification.permission === 'granted') {
+            const senderName = (users.find(u=>u.email===m.sender)?.name) || m.sender;
+            const notif = new Notification(senderName, {
+              body: m.text ? m.text.slice(0,120) : 'Attachment',
+              icon: '/favicon.ico'
+            });
+            notif.onclick = () => { window.focus(); openConversation(m.sender); };
+          }
+        }
+        // render if currently viewing conversation with sender
+        if (activeContact === (m.sender===currentUser.email ? m.receiver : m.sender)) {
+          renderMessagesFor(activeContact);
+        }
+      }
+
+      function showTyping(d){
+        if (!d || d.to !== currentUser.email) return;
+        typingIndicator.style.display = 'block';
+        setTimeout(()=> typingIndicator.style.display='none', 1200);
+      }
+
+      attachBtn.addEventListener('click', ()=> attachFile.click());
+
+      attachFile.addEventListener('change', ()=>{
+        const f = attachFile.files[0];
+        if (!f) return;
+        // small preview: set messageInput to filename
+        messageInput.value = `[file:${f.name}]`;
+      });
+
+      logoutBtn.addEventListener('click', ()=>{
+        localStorage.removeItem('currentUser');
+        window.location.href = 'login.html';
+      });
+
+      // Map init (inline)
+      function initMap(){
+        map = L.map('map', { center:[0,0], zoom:2 });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        loadPropertiesOnMap();
+        // if agent, auto-open (center) to agent properties
+        if (currentUser.type === 'agent') {
+          setTimeout(()=> {
+            // center to agent first property if any
+            fetch(API + `/properties?agent=${encodeURIComponent(currentUser.email)}`).then(r=>r.json()).then(props=>{
+              const p = props.find(x=>x.lat && x.lng);
+              if (p) map.setView([p.lat,p.lng], 12);
+            }).catch(()=>{});
+          }, 600);
+        }
+      }
+
+      async function loadPropertiesOnMap(){
+        const props = await fetch(API + '/properties').then(r=>r.json()).catch(()=>[]);
+        propertyMarkers.forEach(m=>map.removeLayer(m));
+        propertyMarkers = [];
+        props.forEach(p=>{
+          if (p.lat && p.lng) {
+            const mk = L.marker([p.lat,p.lng]).addTo(map).bindPopup(`<b>${escapeHTML(p.title||'Property')}</b><div style="font-size:0.9rem">${escapeHTML(p.location||'')}</div>`);
+            propertyMarkers.push(mk);
+          }
+        });
+        if (propertyMarkers.length) map.fitBounds(L.featureGroup(propertyMarkers).getBounds(), {padding:[40,40]});
+      }
+
+      mapFilter.addEventListener('change', ()=> {
+        // filter by agent-owned (client-side)
+        const v = mapFilter.value;
+        propertyMarkers.forEach(m=> map.removeLayer(m));
+        fetch(API + '/properties').then(r=>r.json()).then(props=>{
+          propertyMarkers.forEach(m=> map.removeLayer(m));
+          propertyMarkers = [];
+          props.forEach(p=>{
+            if (!p.lat || !p.lng) return;
+            if (v === 'agent' && p.agent !== currentUser.email) return;
+            const mk = L.marker([p.lat,p.lng]).addTo(map).bindPopup(`<b>${escapeHTML(p.title||'Property')}</b><div style="font-size:0.9rem">${escapeHTML(p.location||'')}</div>`);
+            propertyMarkers.push(mk);
+          });
+          if (propertyMarkers.length) map.fitBounds(L.featureGroup(propertyMarkers).getBounds(), {padding:[40,40]});
+        }).catch(()=>{});
+      });
+
+      // helpers
+      function escapeHTML(s){ if (s==null) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+      function bindEvents(){ /* placeholder */ }
+
+      // expose onIncomingMessage for socket handler
+      window.onIncomingMessage = onIncomingMessage;
+
+      init();
+    })();
+  </script>
+</body>
+</html>

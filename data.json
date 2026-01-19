@@ -1,0 +1,33 @@
+{
+    "users": [
+        {
+            "email": "agent@example.com",
+            "password": "12345",
+            "type": "agent"
+        },
+        {
+            "email": "client@example.com",
+            "password": "67890",
+            "type": "client"
+        }
+    ],
+    "properties": [
+        {
+            "id": 1,
+            "title": "2-Bedroom Apartment in Lagos",
+            "location": "Lagos, Nigeria",
+            "price": 80000,
+            "currency": "NGN",
+            "billing_cycle": "month",
+            "agent": "agent@example.com"
+        },
+        {
+            "id": 2,
+            "title": "Plot of Land in Abuja",
+            "location": "Abuja, Nigeria",
+            "price": 1000000,
+            "currency": "NGN",
+            "agent": "agent@example.com"
+        }
+    ]
+}
