@@ -23,6 +23,13 @@
       "type": "client",
       "license": "",
       "createdAt": "2026-01-19T23:31:27.852Z"
+    },
+    {
+      "id": "097b",
+      "name": "qwerty",
+      "email": "ifidonaomi@gmail.com",
+      "password": "123455",
+      "type": "client"
     }
   ],
   "properties": [],
@@ -40,6 +47,14 @@
       "receiver": "test@example.com",
       "text": "hi",
       "timestamp": "2026-01-19T23:39:26.879Z",
+      "attachment": null
+    },
+    {
+      "id": "7beb",
+      "sender": "ifidonaomi@gmail.com",
+      "receiver": "agent@example.com",
+      "text": "i how are you doing",
+      "timestamp": "2026-03-25T17:04:50.026Z",
       "attachment": null
     }
   ]
