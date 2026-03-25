@@ -1,321 +1,319 @@
-console.log("JavaScript is connected!");
+/*
+  Central client script.
+  - Uses window.APP_CONFIG if present (API_BASE / SUPABASE_URL / SUPABASE_KEY / SOCKET_URL)
+  - Falls back to local json-server endpoints (http://localhost:3000)
+  - Exposes contactAgent, verifyUser, sendResetCode, resetPassword to global window
+*/
+console.log('script.js loaded');
 
-if (!localStorage.getItem("currentUser")) {
-    window.location.href = "login.html";
+const CONFIG = window.APP_CONFIG || {};
+const API_BASE = CONFIG.API_BASE || 'http://localhost:3000';
+const SUPABASE_URL = CONFIG.SUPABASE_URL || '';
+const SUPABASE_KEY = CONFIG.SUPABASE_KEY || '';
+
+let supabase = null;
+(async function maybeInitSupabase(){
+  if (SUPABASE_URL && SUPABASE_KEY) {
+    try {
+      const mod = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+      supabase = mod.createClient(SUPABASE_URL, SUPABASE_KEY);
+      console.log('Supabase client initialized');
+    } catch (e) {
+      console.warn('Supabase init failed', e);
+      supabase = null;
+    }
+  }
+})();
+
+// helper: get current user (supports different storage keys)
+function getCurrentUser(){
+  return JSON.parse(localStorage.getItem('currentUser') || localStorage.getItem('loggedInUser') || 'null');
 }
 
-// --- DOM ELEMENTS ---
-const propertyList = document.getElementById("propertyList");
-const searchBox = document.getElementById("searchBox");
-const priceFilter = document.getElementById("priceFilter");
-const messageList = document.getElementById("messageList");
+function escapeHTML(s){ if (s==null) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- Properties listing ---------- */
+const propertyList = document.getElementById('propertyList');
+const searchBox = document.getElementById('searchBox');
+const priceFilter = document.getElementById('priceFilter');
 
 let allProperties = [];
 
-// --- PROPERTY LISTING, SEARCH, FILTER ---
-function displayProperties(properties) {
-    if (!propertyList) return;
-    propertyList.innerHTML = properties.map(property => `
-        <div>
-            <h3>${property.title}</h3>
-            <p><strong>Location:</strong> ${property.location}</p>
-            <p><strong>Price:</strong> $${property.price}</p>
-            <p>${property.description}</p>
-            <p><strong>Agent:</strong> ${property.agent}</p>
-            <button onclick="contactAgent('${property.agent}')">Contact Agent</button>
-            <hr>
-        </div>
-    `).join("");
+function displayProperties(properties){
+  if (!propertyList) return;
+  propertyList.innerHTML = properties.map(p => `
+    <article class="prop-card">
+      <div class="prop-media">${p.image ? `<img src="${escapeHTML(p.image)}" alt="${escapeHTML(p.title)}">` : ''}</div>
+      <div class="prop-body">
+        <h3>${escapeHTML(p.title)}</h3>
+        <div class="meta"><strong>Location:</strong> ${escapeHTML(p.location || '')} · <strong>Agent:</strong> ${escapeHTML(p.agent || '')}</div>
+        <p class="price">${p.price ? '$' + Number(p.price).toLocaleString() : ''}</p>
+        <p class="desc">${escapeHTML(p.description || '')}</p>
+        <div class="actions"><button class="btn-contact" data-agent="${escapeHTML(p.agent || '')}">Contact Agent</button></div>
+      </div>
+    </article>
+  `).join('');
+  // wire contact buttons
+  propertyList.querySelectorAll('.btn-contact').forEach(btn => {
+    btn.addEventListener('click', () => contactAgent(btn.dataset.agent));
+  });
 }
 
-function filterAndDisplay() {
-    let filtered = allProperties;
-
-    // Filter by search text
-    if (searchBox && searchBox.value.trim() !== "") {
-        const searchText = searchBox.value.toLowerCase();
-        filtered = filtered.filter(property =>
-            property.title.toLowerCase().includes(searchText) ||
-            property.location.toLowerCase().includes(searchText)
-        );
-    }
-
-    // Filter by price
-    if (priceFilter && priceFilter.value !== "") {
-        const filterValue = priceFilter.value;
-        filtered = filtered.filter(property => {
-            if (filterValue === "low") return property.price < 500;
-            if (filterValue === "medium") return property.price >= 500 && property.price <= 1000;
-            if (filterValue === "high") return property.price > 1000;
-            return true;
-        });
-    }
-
-    displayProperties(filtered);
+function filterAndDisplay(){
+  let filtered = allProperties.slice();
+  const text = searchBox?.value?.trim().toLowerCase();
+  if (text) {
+    filtered = filtered.filter(p => (p.title||'').toLowerCase().includes(text) || (p.location||'').toLowerCase().includes(text));
+  }
+  const pf = priceFilter?.value || '';
+  if (pf) {
+    filtered = filtered.filter(p => {
+      const price = Number(p.price || 0);
+      if (pf === 'low') return price < 500;
+      if (pf === 'medium') return price >= 500 && price <= 1000;
+      if (pf === 'high') return price > 1000;
+      return true;
+    });
+  }
+  displayProperties(filtered);
 }
 
-function fetchProperties() {
-    fetch("http://localhost:3000/properties")
-        .then(response => response.json())
-        .then(properties => {
-            allProperties = properties;
-            filterAndDisplay();
-        })
-        .catch(error => console.error("Error fetching properties:", error));
+async function fetchProperties(){
+  try {
+    const res = await fetch(`${API_BASE}/properties`);
+    allProperties = await res.json();
+    filterAndDisplay();
+  } catch (e) {
+    console.error('fetchProperties error', e);
+  }
 }
 
 if (propertyList) {
-    fetchProperties();
-    if (searchBox) searchBox.addEventListener("input", filterAndDisplay);
-    if (priceFilter) priceFilter.addEventListener("change", filterAndDisplay);
+  fetchProperties();
+  searchBox?.addEventListener('input', filterAndDisplay);
+  priceFilter?.addEventListener('change', filterAndDisplay);
 }
 
-// --- CONTACT AGENT ---
-function contactAgent(agentEmail) {
-    const client = JSON.parse(localStorage.getItem("loggedInUser"));
-    if (!client) {
-        alert("You must be logged in to contact an agent.");
-        return;
+/* ---------- Contact Agent (global) ---------- */
+async function contactAgent(agentEmail){
+  const client = getCurrentUser();
+  if (!client) { alert('You must be logged in to contact an agent.'); window.location.href = 'login.html'; return; }
+  const message = prompt('Enter your message for the agent:');
+  if (!message) return;
+  const payload = { client: client.email || client.user?.email, agent: agentEmail, message, timestamp: new Date().toISOString() };
+  try {
+    if (supabase) {
+      await supabase.from('messages').insert(payload);
+    } else {
+      await fetch(`${API_BASE}/messages`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
     }
-    const message = prompt("Enter your message for the agent:");
-    if (message) {
-        const chatData = { client: client.email, agent: agentEmail, message };
-        fetch("http://localhost:3000/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(chatData)
-        })
-        .then(response => response.json())
-        .then(() => alert("Message sent successfully!"))
-        .catch(error => console.error("Error:", error));
-    }
+    alert('Message sent successfully!');
+  } catch (e) {
+    console.error('contactAgent error', e);
+    alert('Failed to send message.');
+  }
 }
 window.contactAgent = contactAgent;
 
-// --- AGENT MESSAGES ---
+/* ---------- Agent message viewer (agent dashboard) ---------- */
+const messageList = document.getElementById('messageList');
 if (messageList) {
-    const agent = JSON.parse(localStorage.getItem("loggedInUser"));
-    if (!agent) {
-        alert("You must be logged in to view messages.");
-    } else {
-        fetch("http://localhost:3000/messages")
-            .then(response => response.json())
-            .then(messages => {
-                const agentMessages = messages.filter(msg => msg.agent === agent.email);
-                messageList.innerHTML = agentMessages.length
-                    ? agentMessages.map(msg => `<p><strong>${msg.client}:</strong> ${msg.message}</p><hr>`).join("")
-                    : "<p>No messages yet.</p>";
-            })
-            .catch(error => console.error("Error fetching messages:", error));
+  (async ()=>{
+    const agent = getCurrentUser();
+    if (!agent) { alert('You must be logged in to view messages.'); window.location.href = 'login.html'; return; }
+    try {
+      let messages = [];
+      if (supabase) {
+        const { data } = await supabase.from('messages').select('*').eq('agent', agent.email);
+        messages = data || [];
+      } else {
+        const res = await fetch(`${API_BASE}/messages`);
+        messages = await res.json();
+        messages = messages.filter(m => m.agent === agent.email);
+      }
+      messageList.innerHTML = messages.length ? messages.map(m => `<p><strong>${escapeHTML(m.client)}:</strong> ${escapeHTML(m.message)}</p><hr>`).join('') : '<p>No messages yet.</p>';
+    } catch (e) {
+      console.error('agent messages error', e);
     }
+  })();
 }
 
-// --- REGISTER FORM ---
-const registerForm = document.getElementById("registerForm");
+/* ---------- Registration ---------- */
+const registerForm = document.getElementById('registerForm');
 if (registerForm) {
-    registerForm.addEventListener("submit", async function(e) {
-        e.preventDefault();
-        const name = document.getElementById("name").value.trim();
-        const email = document.getElementById("email").value.trim();
-        const phone = document.getElementById("phone").value.trim();
-        const password = document.getElementById("password").value;
-        const role = document.getElementById("role").value;
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = (document.getElementById('name')||{}).value?.trim();
+    const email = (document.getElementById('email')||{}).value?.trim();
+    const phone = (document.getElementById('phone')||{}).value?.trim();
+    const password = (document.getElementById('password')||{}).value || '';
+    const role = (document.getElementById('role')||{}).value || 'client';
 
-        // Check if user already exists
-        const res = await fetch(`http://localhost:3000/users?email=${encodeURIComponent(email)}`);
-        const existing = await res.json();
-        if (existing.length > 0) {
-            alert("Email already registered.");
-            return;
-        }
+    if (!email || !password) { alert('Please provide email and password'); return; }
 
-        // Register user
-        await fetch("http://localhost:3000/users", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, email, phone, password, type: role })
-        });
-
-        alert("Registration successful! Please login.");
-        window.location.href = "login.html";
-    });
+    try {
+      if (supabase) {
+        const { data: signUp, error: signErr } = await supabase.auth.signUp({ email, password });
+        if (signErr) { alert('Signup error: ' + signErr.message); return; }
+        const profile = { name, email, phone, type: role, created_at: new Date().toISOString() };
+        const { data, error } = await supabase.from('users').insert(profile).select().single();
+        if (error) throw error;
+        localStorage.setItem('currentUser', JSON.stringify(data));
+      } else {
+        // check exists
+        const r = await fetch(`${API_BASE}/users?email=${encodeURIComponent(email)}`);
+        const existing = await r.json();
+        if (existing.length) { alert('Email already registered.'); return; }
+        const res = await fetch(`${API_BASE}/users`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ name, email, phone, password, type: role }) });
+        const created = await res.json();
+        localStorage.setItem('currentUser', JSON.stringify(created));
+      }
+      alert('Registration successful!');
+      window.location.href = (role === 'agent') ? 'agent.html' : 'client.html';
+    } catch (err) {
+      console.error('register error', err);
+      alert('Registration failed.');
+    }
+  });
 }
 
-// --- VERIFICATION ---
-function verifyUser() {
-    const enteredCode = document.getElementById("verificationCode").value;
-    const pendingVerification = JSON.parse(localStorage.getItem("pendingVerification"));
-    if (!pendingVerification) {
-        alert("No verification process found. Please register again.");
-        return;
+/* ---------- Verification ---------- */
+async function verifyUser(){
+  const enteredCode = (document.getElementById('verificationCode')||{}).value;
+  const pending = JSON.parse(localStorage.getItem('pendingVerification') || 'null');
+  if (!pending) { alert('No verification found.'); return; }
+  try {
+    if (supabase) {
+      const { data } = await supabase.from('users').select('*').eq('email', pending.email).single();
+      if (!data) { alert('User not found'); return; }
+      if (String(data.verificationCode) === String(enteredCode)) {
+        await supabase.from('users').update({ verified: true }).eq('id', data.id);
+        alert('Verification successful'); localStorage.removeItem('pendingVerification'); window.location.href = 'login.html';
+      } else { alert('Incorrect code'); }
+    } else {
+      const res = await fetch(`${API_BASE}/users?email=${encodeURIComponent(pending.email)}`);
+      const users = await res.json();
+      const user = users[0];
+      if (!user) { alert('User not found'); return; }
+      if (String(user.verificationCode) === String(enteredCode)) {
+        await fetch(`${API_BASE}/users/${user.id}`, { method:'PATCH', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ verified: true }) });
+        alert('Verification successful'); localStorage.removeItem('pendingVerification'); window.location.href = 'login.html';
+      } else { alert('Incorrect code'); }
     }
-    fetch(`http://localhost:3000/users?email=${pendingVerification.email}`)
-        .then(response => response.json())
-        .then(users => {
-            if (users.length === 0) {
-                alert("User not found!");
-                return;
-            }
-            const user = users[0];
-            if (user.verificationCode == enteredCode) {
-                fetch(`http://localhost:3000/users/${user.id}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ verified: true })
-                })
-                .then(() => {
-                    alert("Verification successful! You can now log in.");
-                    localStorage.removeItem("pendingVerification");
-                    window.location.href = "login.html";
-                });
-            } else {
-                alert("Incorrect verification code!");
-            }
-        })
-        .catch(error => console.error("Error verifying user:", error));
+  } catch (e) { console.error('verify error', e); alert('Verification failed'); }
 }
 window.verifyUser = verifyUser;
 
-// --- RESET PASSWORD ---
-function sendResetCode() {
-    const input = document.getElementById("resetInput").value;
-    fetch(`http://localhost:3000/users`)
-        .then(response => response.json())
-        .then(users => {
-            const user = users.find(u => u.email === input || u.phone === input);
-            if (!user) {
-                alert("No account found with this email or phone number.");
-                return;
-            }
-            const resetCode = Math.floor(100000 + Math.random() * 900000);
-            fetch(`http://localhost:3000/users/${user.id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ resetCode })
-            })
-            .then(() => {
-                alert(`A reset code has been sent to your email/phone: ${resetCode}`);
-                localStorage.setItem("resetUser", JSON.stringify({ id: user.id, resetCode: String(resetCode) }));
-                window.location.href = "new-password.html";
-            });
-        })
-        .catch(error => console.error("Error sending reset code:", error));
+/* ---------- Reset password ---------- */
+async function sendResetCode(){
+  const input = (document.getElementById('resetInput')||{}).value;
+  if (!input) { alert('Enter email or phone'); return; }
+  try {
+    if (supabase) {
+      const { data: user } = await supabase.from('users').select('*').or(`email.eq.${input},phone.eq.${input}`).single();
+      if (!user) { alert('No account found'); return; }
+      const resetCode = String(Math.floor(100000 + Math.random()*900000));
+      await supabase.from('users').update({ resetCode }).eq('id', user.id);
+      localStorage.setItem('resetUser', JSON.stringify({ id: user.id, resetCode }));
+      alert('Reset code generated.'); window.location.href = 'new-password.html';
+    } else {
+      const res = await fetch(`${API_BASE}/users`);
+      const users = await res.json();
+      const user = users.find(u => u.email === input || u.phone === input);
+      if (!user) { alert('No account found'); return; }
+      const resetCode = String(Math.floor(100000 + Math.random()*900000));
+      await fetch(`${API_BASE}/users/${user.id}`, { method:'PATCH', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ resetCode }) });
+      localStorage.setItem('resetUser', JSON.stringify({ id: user.id, resetCode }));
+      alert('Reset code saved.'); window.location.href = 'new-password.html';
+    }
+  } catch (e) { console.error('sendResetCode error', e); alert('Failed to generate reset code'); }
 }
 window.sendResetCode = sendResetCode;
 
-function resetPassword() {
-    const resetUser = JSON.parse(localStorage.getItem("resetUser"));
-    if (!resetUser) {
-        alert("No reset request found. Please try again.");
-        return;
+async function resetPassword(){
+  const ru = JSON.parse(localStorage.getItem('resetUser') || 'null');
+  if (!ru) { alert('No reset request'); return; }
+  const entered = (document.getElementById('resetCode')||{}).value;
+  const newPassword = (document.getElementById('newPassword')||{}).value;
+  if (!entered || !newPassword) { alert('Fill fields'); return; }
+  if (entered !== String(ru.resetCode)) { alert('Invalid code'); return; }
+  try {
+    if (supabase) {
+      await supabase.from('users').update({ password: newPassword, resetCode: null }).eq('id', ru.id);
+    } else {
+      await fetch(`${API_BASE}/users/${ru.id}`, { method:'PATCH', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ password: newPassword, resetCode: null }) });
     }
-    const enteredCode = document.getElementById("resetCode").value;
-    const newPassword = document.getElementById("newPassword").value;
-    if (!enteredCode || !newPassword) {
-        alert("Please fill in all required fields.");
-        return;
-    }
-    if (enteredCode !== resetUser.resetCode) {
-        alert("Invalid reset code. Please try again.");
-        return;
-    }
-    fetch(`http://localhost:3000/users/${resetUser.id}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("User not found.");
-            }
-            return response.json();
-        })
-        .then(user => {
-            return fetch(`http://localhost:3000/users/${resetUser.id}`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ password: newPassword, resetCode: null })
-            });
-        })
-        .then(() => {
-            alert("Password has been successfully reset.");
-            localStorage.removeItem("resetUser");
-            window.location.href = "login.html";
-        })
-        .catch(error => console.error("Error resetting password:", error));
+    alert('Password reset successful'); localStorage.removeItem('resetUser'); window.location.href = 'login.html';
+  } catch (e) { console.error('resetPassword error', e); alert('Failed to reset password'); }
 }
 window.resetPassword = resetPassword;
 
-// --- LOGIN FORM ---
-(function loginRedirectPatch(){
-  const API = 'http://localhost:3000';
+/* ---------- Login form handling ---------- */
+(async function attachLogin(){
   const loginForm = document.getElementById('loginForm');
   if (!loginForm) return;
-
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const emailEl = loginForm.querySelector('#email');
-    const passEl = loginForm.querySelector('#password');
-    const email = emailEl ? emailEl.value.trim() : '';
-    const password = passEl ? passEl.value.trim() : '';
-    if (!email || !password) {
-      alert('Please enter email and password');
-      return;
-    }
-
+    const email = (loginForm.querySelector('#email') || {}).value?.trim();
+    const password = (loginForm.querySelector('#password') || {}).value || '';
+    if (!email || !password) { alert('Enter email and password'); return; }
     try {
-      // json-server style lookup
-      const res = await fetch(`${API}/users?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
-      const users = await res.json();
-      if (!users || users.length === 0) {
-        alert('Invalid credentials');
-        return;
+      if (supabase) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) { alert('Login failed: ' + error.message); return; }
+        // fetch profile
+        const { data: profile } = await supabase.from('users').select('*').eq('email', email).single();
+        localStorage.setItem('currentUser', JSON.stringify(profile || data.user));
+        const redirect = localStorage.getItem('postLoginRedirect') || (profile?.type === 'agent' ? 'agent.html' : 'client.html') || 'showcase.html';
+        localStorage.removeItem('postLoginRedirect');
+        window.location.href = redirect;
+      } else {
+        const res = await fetch(`${API_BASE}/users?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
+        const users = await res.json();
+        if (!users || users.length === 0) { alert('Invalid credentials'); return; }
+        const user = users[0];
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        const redirect = localStorage.getItem('postLoginRedirect') || (user.type === 'agent' ? 'agent.html' : 'client.html') || 'showcase.html';
+        localStorage.removeItem('postLoginRedirect');
+        window.location.href = redirect;
       }
-      const user = users[0];
-      localStorage.setItem('currentUser', JSON.stringify(user));
-
-      // redirect to saved destination or to showcase
-      const redirect = localStorage.getItem('postLoginRedirect') || 'showcase.html';
-      localStorage.removeItem('postLoginRedirect');
-      window.location.href = redirect;
     } catch (err) {
-      console.error('Login failed', err);
-      alert('Login error. Check console for details.');
+      console.error('login error', err);
+      alert('Login failed');
     }
   });
 })();
 
-// --- PROPERTY FORM ---
-const propertyForm = document.getElementById("propertyForm");
+/* ---------- Property upload form ---------- */
+const propertyForm = document.getElementById('propertyForm') || document.getElementById('propertyUploadForm');
 if (propertyForm) {
-    propertyForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const title = document.getElementById("title").value;
-        const location = document.getElementById("location").value;
-        const price = document.getElementById("price").value;
-        const description = document.getElementById("description").value;
-        const agent = JSON.parse(localStorage.getItem("loggedInUser"));
-        if (!agent) {
-            alert("You must be logged in to upload a property.");
-            return;
-        }
-        const propertyData = {
-            title,
-            location,
-            price,
-            description,
-            agent: agent.email
-        };
-        fetch("http://localhost:3000/properties", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(propertyData)
-        })
-        .then(response => response.json())
-        .then(() => {
-            alert("Property uploaded successfully!");
-            propertyForm.reset();
-        })
-        .catch(error => console.error("Error:", error));
-    });
+  propertyForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = (document.getElementById('title')||document.getElementById('propertyTitle')||{}).value || '';
+    const location = (document.getElementById('location')||document.getElementById('propertyLocation')||{}).value || '';
+    const price = (document.getElementById('price')||document.getElementById('propertyPrice')||{}).value || '';
+    const description = (document.getElementById('description')||document.getElementById('propertyDescription')||{}).value || '';
+    const agent = getCurrentUser();
+    if (!agent) { alert('You must be logged in to upload a property.'); window.location.href = 'login.html'; return; }
+    const payload = { title, location, price, description, agent: agent.email || agent.user?.email, created_at: new Date().toISOString() };
+    try {
+      if (supabase) {
+        await supabase.from('properties').insert(payload);
+      } else {
+        await fetch(`${API_BASE}/properties`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+      }
+      alert('Property uploaded successfully!');
+      propertyForm.reset();
+      // refresh property list if present
+      if (propertyList) fetchProperties();
+    } catch (err) { console.error('property upload error', err); alert('Failed to upload property'); }
+  });
 }
 
-<button onclick="localStorage.removeItem('currentUser'); window.location.href='login.html';">Logout</button>
+/* ---------- Logout helper (global) ---------- */
+function logout(){
+  localStorage.removeItem('currentUser');
+  if (supabase) supabase.auth.signOut().catch(()=>{});
+  window.location.href = 'login.html';
+}
+window.logout = logout;

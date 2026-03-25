@@ -93,12 +93,14 @@
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
   <script>
     (function(){
-      const API = 'http://localhost:3000';
-      const SOCKET_URL = 'http://localhost:5000';
-      const UPLOAD_URL = 'http://localhost:5000/upload';
-      let users = [], messages = [], currentUser = JSON.parse(localStorage.getItem('currentUser')||'null');
+      const API = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) ? window.APP_CONFIG.API_BASE : 'http://localhost:3000';
+      const SOCKET_URL = (window.APP_CONFIG && window.APP_CONFIG.SOCKET_URL) ? window.APP_CONFIG.SOCKET_URL : 'http://localhost:5000';
+      const UPLOAD_URL = (window.APP_CONFIG && window.APP_CONFIG.UPLOAD_URL) ? window.APP_CONFIG.UPLOAD_URL : ((window.APP_CONFIG && window.APP_CONFIG.SOCKET_URL) ? window.APP_CONFIG.SOCKET_URL + '/upload' : 'http://localhost:5000/upload');
+      let users = [], messages = [], currentUser = getCurrentUser();
       if (!currentUser) { localStorage.setItem('postLoginRedirect','/messages.html'); window.location.href='login.html'; }
 
       // request notification permission early
@@ -399,3 +401,4 @@
   </script>
 </body>
 </html>
+

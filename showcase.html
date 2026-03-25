@@ -210,15 +210,17 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
   <script>
     // require login: redirect to login if not signed in
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    const currentUser = getCurrentUser();
     if (!currentUser) {
       localStorage.setItem('postLoginRedirect', window.location.pathname);
       window.location.href = 'login.html';
     }
 
-    const API = 'http://localhost:3000';
+    const API = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) ? window.APP_CONFIG.API_BASE : 'http://localhost:3000';
     const stack = document.getElementById('stack');
     const locationSelect = document.getElementById('locationSelect');
     const seedBtn = document.getElementById('seedBtn');

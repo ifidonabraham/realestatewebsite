@@ -24,9 +24,14 @@
     .reply-box { margin-top:8px; display:flex; gap:8px }
     .reply-box textarea { flex:1; padding:8px; border:1px solid #ddd; border-radius:6px }
     .floating-links { position: absolute; top: 12px; right: 12px; display:flex; gap:8px }
+    @media (max-width:600px) {
+      .floating-links { position:static; margin-top:12px; display:flex; justify-content:flex-end }
+    }
   </style>
 </head>
 <body>
+  <script src="config.js"></script>
+
   <div class="floating-nav" id="mainNav">
     <!-- populated by script -->
   </div>
@@ -34,15 +39,21 @@
   <main class="wrap">
     <h2>Agents</h2>
     <p id="welcome" style="color:#555"></p>
-    <div class="grid" id="agentsGrid"></div>
+    <div class="grid" id="agentsGrid" aria-live="polite"></div>
   </main>
 
   <script>
     (function(){
-      const API = 'http://localhost:3000';
-      const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
-      if (!user) { localStorage.setItem('postLoginRedirect', '/agent.html'); window.location.href = 'login.html'; }
-      document.getElementById('welcome').textContent = `Welcome, ${user.name || user.email} — ${user.type}`;
+      const CONFIG = window.APP_CONFIG || {};
+      const API = CONFIG.API_BASE || 'http://localhost:3000';
+      const SUPABASE_URL = CONFIG.SUPABASE_URL || '';
+      const SUPABASE_KEY = CONFIG.SUPABASE_KEY || '';
+
+      // read current user
+      const user = (() => { try { return JSON.parse(localStorage.getItem('currentUser') || 'null'); } catch { return null; } })();
+      if (!user) { localStorage.setItem('postLoginRedirect', '/agent.html'); /* allow login page to redirect */ }
+
+      document.getElementById('welcome').textContent = user ? `Welcome, ${user.name || user.email} — ${user.type}` : 'Welcome';
 
       // build nav dynamically
       const nav = document.getElementById('mainNav');
@@ -50,16 +61,34 @@
         { href:'index.html', text:'Home' },
         { href:'showcase.html', text:'Showcase' },
         { href:'messages.html', text:'Messages' },
-        { href:'login.html', text:'Login' }
+        { href:'login.html', text: user ? 'Account' : 'Login' }
       ];
-      // add quick links
-      if (user.type === 'client') links.splice(2,0,{ href:'agent.html?my=1', text:'My agents' });
-      if (user.type === 'agent') links.splice(2,0,{ href:'agent.html?clients=1', text:'My clients' });
-      nav.innerHTML = links.map(l=>`<a href="${l.href}">${l.text}</a>`).join('');
+      if (user && user.type === 'client') links.splice(2,0,{ href:'agent.html?my=1', text:'My agents' });
+      if (user && user.type === 'agent') links.splice(2,0,{ href:'agent.html?clients=1', text:'My clients' });
+      nav.innerHTML = links.map(l=>`<a href="${l.href}">${l.text}</a>`).join(' ');
+
+      // fetch helper with supabase optional (keeps backward compatibility)
+      async function apiFetch(path, opts){
+        const url = API.replace(/\/$/, '') + path;
+        return fetch(url, opts);
+      }
 
       async function loadAgents(){
-        const agents = await fetch(API + '/users?type=agent').then(r=>r.json()).catch(()=>[]);
-        const ratings = await fetch(API + '/ratings').then(r=>r.json()).catch(()=>[]);
+        const grid = document.getElementById('agentsGrid');
+        grid.innerHTML = '<div style="color:#888">Loading agents…</div>';
+        try {
+          const [agentsRes, ratingsRes] = await Promise.all([
+            apiFetch('/users?type=agent').then(r=>r.json()).catch(()=>[]),
+            apiFetch('/ratings').then(r=>r.json()).catch(()=>[])
+          ]);
+          renderAgents(agentsRes || [], ratingsRes || []);
+        } catch (e) {
+          console.error('loadAgents error', e);
+          grid.innerHTML = '<div style="color:#777">Unable to load agents. Check API configuration.</div>';
+        }
+      }
+
+      function renderAgents(agents, ratings){
         const grid = document.getElementById('agentsGrid');
         grid.innerHTML = '';
         agents.forEach(a=>{
@@ -96,15 +125,15 @@
             <div class="pastRatings"></div>
           `;
 
-          // render past ratings list with agent response and reply UI if current user is that agent
+          // populate past ratings and reply actions
           const pastEl = card.querySelector('.pastRatings');
           pastEl.innerHTML = agentRatings.length ? agentRatings.slice().reverse().map(r => {
             const respHtml = r.response ? `<div class="response"><strong>Agent reply:</strong><div>${escapeHTML(r.response)}</div></div>` : '';
-            const replyBtn = (user.type === 'agent' && user.email === a.email && !r.response) ? `<div style="margin-top:8px"><button class="btn replyBtn" data-id="${r.id}">Reply</button></div>` : '';
+            const replyBtn = (user && user.type === 'agent' && user.email === a.email && !r.response) ? `<div style="margin-top:8px"><button class="btn replyBtn" data-id="${r.id}">Reply</button></div>` : '';
             return `<div class="review"><strong>${r.score}★</strong> — ${escapeHTML(r.comment||'')}<div style="font-size:.85rem;color:#777">${new Date(r.timestamp).toLocaleString()}</div>${respHtml}${replyBtn}</div>`;
           }).join('') : '<div style="color:#777;margin-top:8px">No reviews yet</div>';
 
-          // attach star UI behavior
+          // star UI behavior
           const starRow = card.querySelector('.star-row');
           let selectedScore = 0;
           starRow.querySelectorAll('.star').forEach(s => {
@@ -122,23 +151,22 @@
             });
           });
 
-          // prevent multiple ratings: check if current user already rated this agent
-          const existingByMe = agentRatings.find(rt => rt.reviewer === (user.email || user));
+          // prevent multiple ratings by this reviewer
+          const existingByMe = (user && agentRatings.find(rt => rt.reviewer === user.email)) || null;
           const rateForm = card.querySelector('.rate-form');
           if (existingByMe) {
-            // show note, prefill and disable
             rateForm.classList.add('readonly');
             rateForm.querySelector('.selected-label').textContent = `You rated ${existingByMe.score}★`;
             rateForm.querySelector('.rateComment').value = existingByMe.comment || '';
-            rateForm.querySelector('.submitRate').textContent = 'Update not allowed';
-            rateForm.querySelector('.submitRate').disabled = true;
-            // highlight the stars to show their rating
+            const btn = rateForm.querySelector('.submitRate');
+            btn.textContent = 'Rated';
+            btn.disabled = true;
             rateForm.querySelectorAll('.star').forEach(st => st.classList.toggle('selected', Number(st.dataset.val) <= existingByMe.score));
           }
 
-          // submit rating handler (clients only, one time)
+          // submit rating
           card.querySelector('.submitRate').addEventListener('click', async () => {
-            const currentUser = JSON.parse(localStorage.getItem('currentUser')||'null');
+            const currentUser = (() => { try { return JSON.parse(localStorage.getItem('currentUser')||'null'); } catch { return null; } })();
             if (!currentUser) { alert('Please login to rate'); window.location.href='login.html'; return; }
             if (currentUser.type !== 'client') { alert('Only clients can rate agents.'); return; }
             if (existingByMe) { alert('You have already rated this agent.'); return; }
@@ -146,12 +174,12 @@
             const comment = card.querySelector('.rateComment').value.trim();
             const payload = { agentEmail: a.email, reviewer: currentUser.email, score: selectedScore, comment, timestamp: new Date().toISOString() };
             try {
-              const res = await fetch(API + '/ratings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+              const res = await apiFetch('/ratings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
               if (!res.ok) throw new Error('Failed to save rating');
               await loadAgents();
             } catch (err) {
               console.error(err);
-              alert('Failed to submit rating. Is json-server running?');
+              alert('Failed to submit rating. Is the API configured?');
             }
           });
 
@@ -160,7 +188,6 @@
             const btn = ev.target.closest('.replyBtn');
             if (!btn) return;
             const ratingId = btn.dataset.id;
-            // replace button with reply UI
             const reviewEl = btn.closest('.review');
             btn.remove();
             const box = document.createElement('div');
@@ -171,7 +198,7 @@
               const txt = box.querySelector('textarea').value.trim();
               if (!txt) return alert('Enter reply text');
               try {
-                const r = await fetch(API + '/ratings/' + ratingId, {
+                const r = await apiFetch('/ratings/' + ratingId, {
                   method: 'PATCH',
                   headers: {'Content-Type':'application/json'},
                   body: JSON.stringify({ response: txt, responseAt: new Date().toISOString(), responder: user.email })
@@ -194,5 +221,6 @@
       loadAgents();
     })();
   </script>
+<script src="script.js"></script>
 </body>
 </html>

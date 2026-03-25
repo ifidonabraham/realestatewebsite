@@ -10,36 +10,36 @@
     .field{margin-bottom:12px}
     label{display:block;font-weight:700;margin-bottom:6px}
     input,select,button,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
-    button{background:#b11f1f;color:#fff;border:none;font-weight:800;cursor:pointer}
+    button{background:#551414;color:#e9e9e9;border:none;font-weight:800;cursor:pointer}
   </style>
 </head>
 <body>
   <main>
     <div class="center">
-      <h2 style="margin-top:0">Create account</h2>
+      <h2 style="margin-top:0;color: #551414;">Create account</h2>
       <form id="registerForm" autocomplete="on">
         <div class="field">
           <label for="name">Full name</label>
-          <input id="name" required />
+          <input class="but" id="name" placeholder="Full name" required />
         </div>
         <div class="field">
           <label for="email">Email</label>
-          <input id="email" type="email" required />
+          <input class="but" id="email" type="email" placeholder="enter email address" required />
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <input id="password" type="password" required />
+          <input class="but" id="password" type="password" placeholder="enter password" required />
         </div>
         <div class="field">
           <label for="type">Account type</label>
-          <select id="type" required>
-            <option value="client">Client / Buyer</option>
-            <option value="agent">Agent</option>
+          <select class="but" id="type" required>
+            <option class="dropdown" value="client">Client / Buyer</option>
+            <option class="dropdown" value="agent">Agent</option>
           </select>
         </div>
         <div class="field" id="agentExtras" style="display:none">
           <label for="license">Agent license / Agency</label>
-          <input id="license" placeholder="Optional" />
+          <input  id="license" placeholder="Optional" />
         </div>
 
         <div style="display:flex;gap:8px">
@@ -50,55 +50,8 @@
     </div>
   </main>
 
-  <script>
-    (function(){
-      const API = 'http://localhost:3000';
-      const form = document.getElementById('registerForm');
-      const typeEl = document.getElementById('type');
-      const agentExtras = document.getElementById('agentExtras');
-
-      typeEl.addEventListener('change', ()=> {
-        agentExtras.style.display = (typeEl.value === 'agent') ? 'block' : 'none';
-      });
-
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('name').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
-        const type = typeEl.value;
-        const license = document.getElementById('license').value.trim();
-
-        // check if user exists
-        const exists = await fetch(`${API}/users?email=${encodeURIComponent(email)}`).then(r=>r.json()).catch(()=>[]);
-        if (exists && exists.length) {
-          alert('An account with this email already exists. Please login.');
-          return;
-        }
-
-        const payload = { name, email, password, type, license, createdAt: new Date().toISOString() };
-        try {
-          const res = await fetch(API + '/users', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(payload)
-          });
-          if (!res.ok) throw new Error('Registration failed');
-          const user = await res.json();
-          // set local session
-          localStorage.setItem('currentUser', JSON.stringify(user));
-          // redirect based on type
-          if (user.type === 'agent') {
-            window.location.href = 'agent.html';
-          } else {
-            window.location.href = 'client.html';
-          }
-        } catch (err) {
-          console.error(err);
-          alert('Registration failed. Is json-server running?');
-        }
-      });
-    })();
-  </script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
+
