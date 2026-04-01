@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: #fff;
+  scroll-behavior: smooth;
+}
+
+/* Enhanced Focus States for Accessibility */
+:focus-visible {
+  outline: 4px solid rgba(var(--primary-rgb, 20, 184, 166), 0.4);
+  outline-offset: 4px;
+}
+
+/* Prevent layout shift from scrollbar */
+html {
+  scrollbar-gutter: stable;
+}
