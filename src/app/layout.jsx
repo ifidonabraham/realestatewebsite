@@ -6,26 +6,48 @@ import Footer from '../components/ui/Footer';
 import { PropertyProvider } from '../context/PropertyContext';
 import { AuthProvider } from '../context/AuthContext';
 
+import { Toaster } from 'sonner';
+
 const inter = Inter({ subsets: ['latin'] });
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#1E40AF',
+};
+
 export const metadata = {
-  metadataBase: new URL('https://realestatefinder.ng'),
+  metadataBase: new URL('https://realestatewebsite-omega.vercel.app'),
   title: {
-    default: 'Real Estate Finder | Find Your Dream Home in Nigeria',
-    template: '%s | Real Estate Finder'
+    default: 'Omega Real Estate | Nationwide Property Finder Nigeria',
+    template: '%s | Omega Real Estate'
   },
-  description: 'The most seamless way to discover, view, and secure residential, land, and commercial properties from verified agents across Lagos, Abuja, and Nigeria.',
+  description: 'The most reliable platform to buy, rent, and sell properties across all 36 states in Nigeria. Connect with verified agents today.',
+  keywords: ['real estate nigeria', 'house for rent lagos', 'land for sale abuja', 'nigeria property marketplace', 'verified real estate agents'],
+  authors: [{ name: 'Omega PM' }],
+  creator: 'Omega PM',
+  publisher: 'Omega Real Estate',
+  formatDetection: {
+    email: false,
+    address: true,
+    telephone: true,
+  },
   openGraph: {
-    title: 'Real Estate Finder',
-    description: 'Find your dream home with our seamless property platform.',
-    url: 'https://realestatefinder.ng',
-    siteName: 'Real Estate Finder',
+    title: 'Omega Real Estate Nigeria',
+    description: 'Find your dream home or next investment with Nigeria\'s nationwide property marketplace.',
+    url: 'https://realestatewebsite-omega.vercel.app',
+    siteName: 'Omega Real Estate',
     locale: 'en_NG',
     type: 'website',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Omega Real Estate Nigeria',
+    description: 'Find verified properties across Nigeria.',
+    creator: '@OmegaRealEstate',
+  },
 };
-
-import { Toaster } from 'sonner';
 
 export default function RootLayout({ children }) {
   return (
