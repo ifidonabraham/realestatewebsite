@@ -114,15 +114,16 @@ export default function PropertyDetailPage() {
           )}
           <button 
             onClick={() => toggleFavorite(property.id)}
-          className={cn(
-            "flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all border-2 shadow-lg focus:outline-none focus:ring-4 focus:ring-red-200",
-            favorited ? "bg-red-500 border-red-500 text-white shadow-red-200" : "bg-white border-neutral/10 text-neutral hover:border-red-500 hover:text-red-500"
-          )}
-          aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
-        >
-          <Heart className={cn("w-5 h-5", favorited && "fill-current")} />
-          {favorited ? 'Saved' : 'Save Property'}
-        </button>
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all border-2 shadow-lg focus:outline-none focus:ring-4 focus:ring-red-200",
+              favorited ? "bg-red-500 border-red-500 text-white shadow-red-200" : "bg-white border-neutral/10 text-neutral hover:border-red-500 hover:text-red-500"
+            )}
+            aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Heart className={cn("w-5 h-5", favorited && "fill-current")} />
+            {favorited ? 'Saved' : 'Save Property'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
