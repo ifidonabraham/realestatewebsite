@@ -17,6 +17,7 @@
   "description": "",
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
+    "@emailjs/nodejs": "^5.0.2",
     "@hookform/resolvers": "^5.2.2",
     "@supabase/supabase-js": "^2.101.1",
     "autoprefixer": "^10.4.27",

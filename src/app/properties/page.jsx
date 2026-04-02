@@ -128,10 +128,15 @@ export default function PropertiesPage() {
                       alt={prop.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
-                    <div className="absolute top-5 left-5 z-10 flex gap-2">
+                    <div className="absolute top-5 left-5 z-10 flex flex-col gap-2">
                       <span className="px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-2xl bg-primary">
                         {prop.status}
                       </span>
+                      {prop.isMock && (
+                        <span className="px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-2xl bg-amber-500">
+                          Sample Listing
+                        </span>
+                      )}
                     </div>
                     {/* Heart Button */}
                     <button 

@@ -144,13 +144,18 @@ export default function HomePage() {
                   alt={prop.title}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 />
-                <div className="absolute top-4 left-4 z-10">
+                <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
                   <span className={cn(
                     "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg",
                     prop.status === 'For Sale' ? 'bg-primary' : 'bg-accent'
                   )}>
                     {prop.status}
                   </span>
+                  {prop.isMock && (
+                    <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg bg-amber-500">
+                      Sample
+                    </span>
+                  )}
                 </div>
                 {/* Heart Button */}
                 <button 

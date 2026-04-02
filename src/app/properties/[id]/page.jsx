@@ -106,8 +106,14 @@ export default function PropertyDetailPage() {
         <Link href="/properties" className="text-sm font-bold text-neutral hover:text-primary transition-colors flex items-center gap-2">
           <ChevronLeft className="w-4 h-4" /> Back to Results
         </Link>
-        <button 
-          onClick={() => toggleFavorite(property.id)}
+        <div className="flex items-center gap-4">
+          {property.isMock && (
+            <span className="px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg bg-amber-500">
+              Sample Listing
+            </span>
+          )}
+          <button 
+            onClick={() => toggleFavorite(property.id)}
           className={cn(
             "flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all border-2 shadow-lg focus:outline-none focus:ring-4 focus:ring-red-200",
             favorited ? "bg-red-500 border-red-500 text-white shadow-red-200" : "bg-white border-neutral/10 text-neutral hover:border-red-500 hover:text-red-500"

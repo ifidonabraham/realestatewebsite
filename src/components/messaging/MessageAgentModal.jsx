@@ -9,7 +9,6 @@ import { Input, Textarea } from '../ui/Input';
 import Button from '../ui/Button';
 
 import { supabase } from '../../lib/supabase';
-import emailjs from '@emailjs/browser';
 
 const messageSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -36,23 +35,17 @@ export default function MessageAgentModal({ isOpen, onClose, property }) {
 
   const sendEmailNotification = async (data) => {
     try {
-      const serviceId = 'service_trd0xoa'; 
-      const templateId = 'template_new_inquiry'; 
-      const publicKey = 'zinBnzY4P-odk1F3h'; // Your Real Public Key
-
-      await emailjs.send(
-        serviceId,
-        templateId,
-        {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           agent_email: property.agent.email,
           sender_name: data.name,
           sender_email: data.email,
           property_title: property.title,
           message: data.message,
-          time: new Date().toLocaleString(), // Added time variable
-        },
-        publicKey
-      );
+        })
+      });
     } catch (err) {
       console.warn('Email notification failed but message was saved to database.');
     }

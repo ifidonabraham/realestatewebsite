@@ -62,7 +62,11 @@ export function PropertyProvider({ children }) {
     init();
   }, [user]);
 
-  const properties = useMemo(() => [...dbProperties, ...mockProperties], [dbProperties]);
+  const properties = useMemo(() => {
+    const db = dbProperties.map(p => ({ ...p, isMock: false }));
+    const mock = mockProperties.map(p => ({ ...p, isMock: true }));
+    return [...db, ...mock];
+  }, [dbProperties]);
 
   // 3. Favorite Actions
   const addToFavorites = async (propertyId) => {
