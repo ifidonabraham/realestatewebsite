@@ -5,6 +5,7 @@ import { mockProperties } from '../data/mockProperties';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { formatPrice } from '../lib/utils';
 
 const PropertyContext = createContext();
 
@@ -29,8 +30,9 @@ export function PropertyProvider({ children }) {
       const formatted = data.map(p => ({
         ...p,
         image: p.image_url || 'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?auto=format&fit=crop&w=800&q=80',
-        formattedPrice: `₦${Number(p.price).toLocaleString()}`,
-        agent: { name: p.agent_name, email: p.agent_email, phone: p.agent_phone }
+        formattedPrice: formatPrice(p.price) + (p.type === 'Shortlet' || p.category === 'Shortlet' ? '/night' : ''),
+        agent: { name: p.agent_name, email: p.agent_email, phone: p.agent_phone },
+        is_verified: !!p.is_verified
       }));
       setDbProperties(formatted);
     }

@@ -1,3 +1,5 @@
+import { formatPrice } from '../lib/utils';
+
 export const mockProperties = [
   {
     id: 1,
@@ -6,7 +8,7 @@ export const mockProperties = [
     title: 'Luxury 5-Bedroom Detached Villa',
     location: 'Banana Island, Ikoyi, Lagos',
     price: 450000000,
-    formattedPrice: '₦450,000,000',
+    formattedPrice: formatPrice(450000000),
     beds: 5,
     baths: 6,
     status: 'For Sale',
@@ -29,7 +31,7 @@ export const mockProperties = [
     title: 'Executive Studio Shortlet',
     location: 'Lekki Phase 1, Lagos',
     price: 85000,
-    formattedPrice: '₦85,000/night',
+    formattedPrice: formatPrice(85000) + '/night',
     beds: 1,
     baths: 1,
     status: 'Available',
@@ -51,7 +53,7 @@ export const mockProperties = [
     title: 'Ocean View 3-Bedroom Shortlet',
     location: 'Victoria Island, Lagos',
     price: 150000,
-    formattedPrice: '₦150,000/night',
+    formattedPrice: formatPrice(150000) + '/night',
     beds: 3,
     baths: 3,
     status: 'Available',
@@ -74,7 +76,7 @@ export const mockProperties = [
     title: 'Prime 1000sqm Land Plot',
     location: 'Epe, Lagos',
     price: 15000000,
-    formattedPrice: '₦15,000,000',
+    formattedPrice: formatPrice(15000000),
     status: 'For Sale',
     sqft: '10,763',
     lat: 6.58,

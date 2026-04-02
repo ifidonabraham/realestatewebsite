@@ -19,6 +19,11 @@ export default function DashboardPage() {
   const { user } = useAuth();
   
   const [activeTab, setActiveTab] = useState('favorites');
+
+  React.useEffect(() => {
+    document.title = 'Dashboard | Omega Real Estate';
+  }, []);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
   const [dbMessages, setDbMessages] = useState([]);
@@ -130,7 +135,12 @@ export default function DashboardPage() {
               ) : favoriteProperties.length > 0 ? favoriteProperties.map(prop => (
                 <Card key={prop.id} className="group hover:shadow-2xl transition-all duration-500 rounded-[40px] overflow-hidden flex flex-col bg-white border-none shadow-sm" as="article">
                   <div className="h-56 relative overflow-hidden">
-                    <img src={prop.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={prop.title} />
+                    <img 
+                      src={prop.image} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                      alt={prop.title} 
+                      loading="lazy"
+                    />
                     <button 
                       onClick={() => toggleFavorite(prop.id)}
                       className="absolute top-5 right-5 z-10 w-12 h-12 rounded-2xl flex items-center justify-center bg-red-500 text-white shadow-xl shadow-red-200 transition-all hover:scale-110 focus:outline-none focus:ring-4 focus:ring-red-200"
@@ -182,7 +192,12 @@ export default function DashboardPage() {
                 ))
               ) : myListings.length > 0 ? myListings.map(list => (
                 <Card key={list.id} className="group border-neutral/10 flex items-center p-6 gap-8 rounded-[40px] bg-white hover:shadow-2xl transition-all duration-500" as="article">
-                  <img src={list.image} className="w-24 h-24 rounded-[24px] object-cover shadow-xl" alt={list.title} />
+                  <img 
+                    src={list.image} 
+                    className="w-24 h-24 rounded-[24px] object-cover shadow-xl" 
+                    alt={list.title} 
+                    loading="lazy"
+                  />
                   <div className="flex-1">
                     <h3 className="font-black text-xl text-primary-dark">{list.title}</h3>
                     <p className="text-sm font-bold text-neutral">📍 {list.location} · 👁️ {list.views_count || 0} views</p>

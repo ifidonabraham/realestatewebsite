@@ -13,7 +13,7 @@ import MessageAgentModal from '../../../components/messaging/MessageAgentModal';
 import BookingCalendar from '../../../components/properties/BookingCalendar';
 import ImageGallery from '../../../components/properties/ImageGallery';
 import { Skeleton } from '../../../components/ui/Skeleton';
-import { Heart, ChevronLeft } from 'lucide-react';
+import { Heart, ChevronLeft, BadgeCheck } from 'lucide-react';
 
 export default function PropertyDetailPage() {
   const params = useParams();
@@ -23,7 +23,7 @@ export default function PropertyDetailPage() {
   const property = properties.find(p => String(p.id) === String(params.id));
 
   useEffect(() => {
-    if (property && property.id) {
+    if (property && property.id && !property.isMock) {
       supabase.rpc('increment_views', { target_id: property.id })
         .then(({ error }) => {
           if (error) {
@@ -86,13 +86,13 @@ export default function PropertyDetailPage() {
     } else if (property.category === 'Land') {
       return [
         ...common,
-        { label: 'Total Area', val: property.sqft + ' sqm', icon: '📐' },
+        { label: 'Total Area', val: (property.sqft || 'N/A') + ' sqm', icon: '📐' },
         { label: 'Status', val: property.status, icon: '🏷️' }
       ];
     } else if (property.category === 'Commercial') {
       return [
         ...common,
-        { label: 'Total Area', val: property.sqft + ' sqft', icon: '🏢' },
+        { label: 'Total Area', val: (property.sqft || 'N/A') + ' sqft', icon: '🏢' },
         { label: 'Bathrooms', val: property.baths || 'N/A', icon: '🚿' }
       ];
     }
@@ -134,7 +134,14 @@ export default function PropertyDetailPage() {
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start gap-4">
               <div className="space-y-2">
-                <h1 className="text-4xl md:text-5xl font-black text-primary-dark tracking-tight leading-none">{property.title}</h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-4xl md:text-5xl font-black text-primary-dark tracking-tight leading-none">
+                    {property.title}
+                  </h1>
+                  {property.is_verified && (
+                    <BadgeCheck className="w-10 h-10 text-blue-500 shrink-0" aria-label="Verified Listing" />
+                  )}
+                </div>
                 <p className="text-xl text-neutral font-medium">📍 {property.location}</p>
               </div>
               <p className="text-4xl font-black text-primary">{property.formattedPrice}</p>

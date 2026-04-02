@@ -16,6 +16,10 @@ const contactSchema = z.object({
 });
 
 export default function ContactPage() {
+  React.useEffect(() => {
+    document.title = 'Contact | Omega Real Estate';
+  }, []);
+
   const {
     register,
     handleSubmit,
