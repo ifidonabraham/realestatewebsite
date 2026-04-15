@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
+import BottomSheet from '../../components/ui/BottomSheet';
 import { useProperties } from '../../context/PropertyContext';
 import { cn } from '../../lib/utils';
 import { Heart, Search, SlidersHorizontal, BadgeCheck } from 'lucide-react';
@@ -185,13 +186,18 @@ export default function PropertiesPage() {
         </main>
       </div>
 
-      {/* Mobile Filter Modal */}
-      <Modal isOpen={isFilterModalOpen} onClose={() => setIsFilterModalOpen(false)} title="Refine Search" className="max-w-md rounded-[48px]">
-        <div className="space-y-8">
+      <BottomSheet 
+        isOpen={isFilterModalOpen} 
+        onClose={() => setIsFilterModalOpen(false)} 
+        title="Refine Search"
+      >
+        <div className="space-y-8 pb-10">
           <FilterContent filters={filters} updateFilter={updateFilter} />
-          <Button className="w-full h-16 rounded-[24px] font-black text-lg" onClick={() => setIsFilterModalOpen(false)}>View {filteredProperties.length} Results</Button>
+          <Button className="w-full h-16 rounded-[24px] font-black text-lg shadow-xl shadow-primary/20" onClick={() => setIsFilterModalOpen(false)}>
+            View {filteredProperties.length} Results
+          </Button>
         </div>
-      </Modal>
+      </BottomSheet>
     </div>
   );
 }

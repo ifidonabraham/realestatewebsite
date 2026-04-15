@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '../../lib/utils';
 import { Menu, X, Home, LayoutDashboard, MessageCircle, LogOut, User } from 'lucide-react';
+import Logo from './Logo';
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
@@ -41,13 +42,13 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-[100] shadow-sm">
+      <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-[100] shadow-sm text-primary-dark">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             {/* Logo */}
             <div className="flex items-center">
-              <Link href="/" className="text-2xl font-black text-primary-dark tracking-tighter">
-                Omega<span className="text-accent underline decoration-4 decoration-accent/20 underline-offset-4">Estate</span>
+              <Link href="/">
+                <Logo />
               </Link>
             </div>
             
@@ -58,7 +59,7 @@ const Navbar = () => {
                   key={link.href}
                   href={link.href} 
                   className={cn(
-                    "text-sm font-black uppercase tracking-widest transition-all hover:text-primary",
+                    "text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:text-primary",
                     pathname === link.href ? "text-primary" : "text-neutral"
                   )}
                 >
@@ -76,7 +77,7 @@ const Navbar = () => {
                       {user.email?.charAt(0).toUpperCase()}
                     </div>
                     <div className="hidden lg:block text-left">
-                      <p className="text-xs font-black text-primary-dark uppercase tracking-widest leading-none">Account</p>
+                      <p className="text-[10px] font-black text-primary-dark uppercase tracking-widest leading-none">Account</p>
                       <p className="text-[10px] text-neutral font-bold mt-1 line-clamp-1 max-w-[120px]">{user.email}</p>
                     </div>
                   </Link>
@@ -84,7 +85,7 @@ const Navbar = () => {
                     variant="ghost" 
                     size="sm" 
                     onClick={handleSignOut}
-                    className="text-red-500 hover:bg-red-50 font-black rounded-xl"
+                    className="text-red-500 hover:bg-red-50 font-black rounded-xl text-[10px] uppercase tracking-widest"
                   >
                     Sign Out
                   </Button>
@@ -92,10 +93,10 @@ const Navbar = () => {
               ) : (
                 <div className="flex items-center gap-3">
                   <Link href="/login">
-                    <Button variant="ghost" className="font-black rounded-xl">Sign In</Button>
+                    <Button variant="ghost" className="font-black rounded-xl text-[10px] uppercase tracking-widest h-12 px-6">Sign In</Button>
                   </Link>
                   <Link href="/register">
-                    <Button className="rounded-xl px-8 shadow-xl shadow-primary/20 font-black">Get Started</Button>
+                    <Button className="rounded-xl px-8 shadow-xl shadow-primary/20 font-black text-[10px] uppercase tracking-widest h-12">Get Started</Button>
                   </Link>
                 </div>
               )}
@@ -127,7 +128,7 @@ const Navbar = () => {
       )}>
         <div className="p-6 space-y-10">
           <div className="space-y-4">
-            <p className="text-[10px] font-black text-neutral uppercase tracking-[0.3em] pl-2">Navigation</p>
+            <p className="text-[10px] font-black text-neutral uppercase tracking-[0.3em] pl-2 opacity-50">Navigation</p>
             <div className="grid grid-cols-1 gap-2">
               {navLinks.map((link) => (
                 <Link 
@@ -135,18 +136,18 @@ const Navbar = () => {
                   href={link.href}
                   className={cn(
                     "flex items-center gap-4 p-5 rounded-[24px] font-black text-lg transition-all",
-                    pathname === link.href ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-neutral-light text-primary-dark active:scale-95"
+                    pathname === link.href ? "bg-primary text-white shadow-xl shadow-primary/20 scale-[1.02]" : "bg-neutral-light text-primary-dark active:scale-95"
                   )}
                 >
                   <link.icon size={24} />
-                  {link.label}
+                  <span className="uppercase tracking-widest text-sm">{link.label}</span>
                 </Link>
               ))}
             </div>
           </div>
 
           <div className="space-y-4">
-            <p className="text-[10px] font-black text-neutral uppercase tracking-[0.3em] pl-2">Account</p>
+            <p className="text-[10px] font-black text-neutral uppercase tracking-[0.3em] pl-2 opacity-50">Account</p>
             {user ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-4 p-5 bg-neutral-light rounded-[24px]">
@@ -154,14 +155,14 @@ const Navbar = () => {
                     {user.email?.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-primary-dark font-black truncate max-w-[200px]">{user.user_metadata?.full_name || 'Verified User'}</p>
-                    <p className="text-xs text-neutral font-bold">{user.email}</p>
+                    <p className="text-primary-dark font-black truncate max-w-[200px] uppercase tracking-wider text-xs">{user.user_metadata?.full_name || 'Verified User'}</p>
+                    <p className="text-[10px] text-neutral font-bold">{user.email}</p>
                   </div>
                 </div>
                 <Button 
                   onClick={handleSignOut}
                   variant="outline"
-                  className="w-full h-16 rounded-[24px] border-2 text-red-500 border-red-100 font-black flex gap-3"
+                  className="w-full h-16 rounded-[24px] border-2 text-red-500 border-red-100 font-black flex gap-3 uppercase tracking-widest text-xs"
                 >
                   <LogOut size={20} /> Sign Out
                 </Button>
@@ -169,12 +170,12 @@ const Navbar = () => {
             ) : (
               <div className="flex flex-col gap-3">
                 <Link href="/register" className="w-full">
-                  <Button className="w-full h-16 rounded-[24px] font-black text-lg shadow-xl shadow-primary/20">
+                  <Button className="w-full h-16 rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20">
                     Get Started Free
                   </Button>
                 </Link>
                 <Link href="/login" className="w-full">
-                  <Button variant="outline" className="w-full h-16 rounded-[24px] border-2 font-black text-lg">
+                  <Button variant="outline" className="w-full h-16 rounded-[24px] border-2 font-black text-xs uppercase tracking-[0.2em]">
                     Sign In
                   </Button>
                 </Link>
